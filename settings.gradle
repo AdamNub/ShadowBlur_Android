@@ -1,20 +1,20 @@
 pluginManagement {
-  repositories {
-    gradlePluginPortal()
-    google()
-    mavenCentral()
-  }
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
 }
 
 dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-  repositories {
-    google()
-    mavenCentral()
-  }
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
 }
 
 rootProject.name = "Shadowblur"
-
-include(":app")
-include(":shadowblur")
+include ':app'
+include ':shadowblur'

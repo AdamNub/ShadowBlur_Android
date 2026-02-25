@@ -1,20 +1,19 @@
 plugins {
     id 'com.android.library'
+    id 'maven-publish'
 }
 
 android {
     namespace 'com.effects.shadowblur'
-    compileSdk 34
-
+    compileSdk 34  // You can keep 34 or change to 33
+    
     defaultConfig {
         minSdk 21
-        targetSdk 34
+        targetSdk 34  // Or 33
         versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionName "1.0.0"
     }
-
+    
     buildTypes {
         release {
             minifyEnabled false
@@ -23,12 +22,34 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    
+    // Add this for JitPack - IMPORTANT!
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+            withJavadocJar()
+        }
     }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'com.github.AdamNub'
+            artifactId = 'ShadowBlur_Android'
+            version = '1.0.0'
+            
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
 }
