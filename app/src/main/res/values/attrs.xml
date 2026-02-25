@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ShadowBlur Library Attributes -->
+    
+    <!-- Shadow Attributes -->
+    <declare-styleable name="ShadowView">
+        <attr name="shadowColor" format="color" />
+        <attr name="shadowRadius" format="float" />
+        <attr name="shadowDx" format="float" />
+        <attr name="shadowDy" format="float" />
+        <attr name="shadowShape">
+            <enum name="rectangle" value="0" />
+            <enum name="circle" value="1" />
+            <enum name="oval" value="2" />
+        </attr>
+        <attr name="cornerRadius" format="dimension" />
+        <attr name="elevation" format="dimension" />
+    </declare-styleable>
+    
+    <!-- Blur Attributes -->
+    <declare-styleable name="BlurView">
+        <attr name="blurRadius" format="float" />
+        <attr name="blurScaleFactor" format="float" />
+        <attr name="blurOverlayColor" format="color" />
+        <attr name="blurOverlayAlpha" format="float" />
+        <attr name="blurAlgorithm">
+            <enum name="renderscript" value="0" />
+            <enum name="fast_java" value="1" />
+        </attr>
+    </declare-styleable>
+    
+    <!-- Glass View Attributes -->
+    <declare-styleable name="GlassView">
+        <attr name="glassBlurRadius" format="float" />
+        <attr name="glassOverlayColor" format="color" />
+        <attr name="glassOverlayAlpha" format="float" />
+        <attr name="glassCornerRadius" format="dimension" />
+        <attr name="glassBorderWidth" format="dimension" />
+        <attr name="glassBorderColor" format="color" />
+    </declare-styleable>
+</resources>
