@@ -3,14 +3,11 @@ package com.effects.shadowblur;
 import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
 public class GlassView extends ViewGroup {
-    
-    private static final String TAG = "GlassView";
     
     // Paints
     private Paint glassPaint;
@@ -23,7 +20,8 @@ public class GlassView extends ViewGroup {
     // Configuration
     private BlurConfig config;
     private Bitmap blurredBackground;
-    private Bitmap originalCapturedBitmap; // Store original capture
+    private Bitmap originalCapturedBitmap;
+    private int currentBlurRadius = 20; // Track current radius
     
     // 3D Properties
     private float cornerRadius = 30f;
@@ -116,6 +114,9 @@ public class GlassView extends ViewGroup {
             }
             
             // Store the original captured bitmap
+            if (originalCapturedBitmap != null && !originalCapturedBitmap.isRecycled()) {
+                originalCapturedBitmap.recycle();
+            }
             originalCapturedBitmap = Bitmap.createBitmap(rootBitmap, x, y, width, height);
             
             // Apply initial blur
@@ -134,6 +135,12 @@ public class GlassView extends ViewGroup {
         }
         
         try {
+            // Clean up old blurred bitmap
+            if (blurredBackground != null && !blurredBackground.isRecycled()) {
+                blurredBackground.recycle();
+                blurredBackground = null;
+            }
+            
             // Scale down for performance
             float scale = 0.5f;
             int scaledWidth = (int)(originalCapturedBitmap.getWidth() * scale);
@@ -143,7 +150,7 @@ public class GlassView extends ViewGroup {
                 scaledWidth, scaledHeight, true);
             
             // Apply blur with current radius
-            Bitmap blurred = BlurUtils.getInstance().fastBlur(scaledBitmap, (int) blurRadius);
+            Bitmap blurred = BlurUtils.getInstance().fastBlur(scaledBitmap, currentBlurRadius);
             
             if (blurred != null) {
                 // Scale back up
@@ -363,13 +370,13 @@ public class GlassView extends ViewGroup {
     }
 
     public void setBlurRadius(float radius) {
+        // Store the new radius
         this.blurRadius = radius;
+        this.currentBlurRadius = (int) radius;
         
         // Reapply blur with new radius
         if (originalCapturedBitmap != null && !originalCapturedBitmap.isRecycled()) {
             applyBlur();
-        } else {
-            captureBackground();
         }
     }
 
