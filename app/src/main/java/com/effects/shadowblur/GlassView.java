@@ -3,11 +3,14 @@ package com.effects.shadowblur;
 import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
 public class GlassView extends ViewGroup {
+    
+    private static final String TAG = "GlassView";
     
     // Paints
     private Paint glassPaint;
@@ -20,6 +23,7 @@ public class GlassView extends ViewGroup {
     // Configuration
     private BlurConfig config;
     private Bitmap blurredBackground;
+    private Bitmap originalCapturedBitmap; // Store original capture
     
     // 3D Properties
     private float cornerRadius = 30f;
@@ -111,21 +115,48 @@ public class GlassView extends ViewGroup {
                 return;
             }
             
-            Bitmap behindBitmap = Bitmap.createBitmap(rootBitmap, x, y, width, height);
+            // Store the original captured bitmap
+            originalCapturedBitmap = Bitmap.createBitmap(rootBitmap, x, y, width, height);
             
+            // Apply initial blur
+            applyBlur();
+            
+            rootView.setDrawingCacheEnabled(false);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void applyBlur() {
+        if (originalCapturedBitmap == null || originalCapturedBitmap.isRecycled()) {
+            return;
+        }
+        
+        try {
+            // Scale down for performance
             float scale = 0.5f;
-            Bitmap scaledBitmap = Bitmap.createScaledBitmap(behindBitmap, 
-                (int)(width * scale), (int)(height * scale), true);
+            int scaledWidth = (int)(originalCapturedBitmap.getWidth() * scale);
+            int scaledHeight = (int)(originalCapturedBitmap.getHeight() * scale);
             
-            blurredBackground = BlurUtils.getInstance().fastBlur(scaledBitmap, (int) blurRadius);
+            Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalCapturedBitmap, 
+                scaledWidth, scaledHeight, true);
             
-            if (blurredBackground != null) {
-                blurredBackground = Bitmap.createScaledBitmap(blurredBackground, width, height, true);
+            // Apply blur with current radius
+            Bitmap blurred = BlurUtils.getInstance().fastBlur(scaledBitmap, (int) blurRadius);
+            
+            if (blurred != null) {
+                // Scale back up
+                blurredBackground = Bitmap.createScaledBitmap(blurred, 
+                    originalCapturedBitmap.getWidth(), 
+                    originalCapturedBitmap.getHeight(), 
+                    true);
             }
             
             scaledBitmap.recycle();
-            behindBitmap.recycle();
-            rootView.setDrawingCacheEnabled(false);
+            if (blurred != null && blurred != scaledBitmap) {
+                blurred.recycle();
+            }
             
             invalidate();
             
@@ -179,6 +210,7 @@ public class GlassView extends ViewGroup {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         
+        // Draw the blurred background
         if (blurredBackground != null && !blurredBackground.isRecycled()) {
             canvas.drawBitmap(blurredBackground, 0, 0, null);
         }
@@ -293,12 +325,7 @@ public class GlassView extends ViewGroup {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (w > 0 && h > 0) {
-            postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    captureBackground();
-                }
-            }, 100);
+            captureBackground();
         }
     }
 
@@ -307,7 +334,14 @@ public class GlassView extends ViewGroup {
         this.blurRadius = config.getBlurRadius();
         this.overlayColor = config.getOverlayColor();
         this.overlayAlpha = config.getOverlayAlpha();
-        captureBackground();
+        
+        // Reapply blur with new radius
+        if (originalCapturedBitmap != null && !originalCapturedBitmap.isRecycled()) {
+            applyBlur();
+        } else {
+            captureBackground();
+        }
+        
         invalidate();
     }
 
@@ -330,7 +364,13 @@ public class GlassView extends ViewGroup {
 
     public void setBlurRadius(float radius) {
         this.blurRadius = radius;
-        captureBackground();
+        
+        // Reapply blur with new radius
+        if (originalCapturedBitmap != null && !originalCapturedBitmap.isRecycled()) {
+            applyBlur();
+        } else {
+            captureBackground();
+        }
     }
 
     public void setEdgeHighlightIntensity(float intensity) {
@@ -358,6 +398,10 @@ public class GlassView extends ViewGroup {
         if (blurredBackground != null && !blurredBackground.isRecycled()) {
             blurredBackground.recycle();
             blurredBackground = null;
+        }
+        if (originalCapturedBitmap != null && !originalCapturedBitmap.isRecycled()) {
+            originalCapturedBitmap.recycle();
+            originalCapturedBitmap = null;
         }
     }
 }
