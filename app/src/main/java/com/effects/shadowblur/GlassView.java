@@ -4,9 +4,10 @@ import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
-public class GlassView extends View {
+public class GlassView extends ViewGroup {
     
     // Paints
     private Paint glassPaint;
@@ -49,11 +50,9 @@ public class GlassView extends View {
     }
 
     private void init() {
-        // Enable hardware acceleration
         setLayerType(LAYER_TYPE_HARDWARE, null);
         setWillNotDraw(false);
         
-        // Initialize paints
         glassPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         glassPaint.setStyle(Paint.Style.FILL);
         
@@ -72,13 +71,11 @@ public class GlassView extends View {
         cornerHighlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         cornerHighlightPaint.setStyle(Paint.Style.FILL);
         
-        // Default config
         config = new BlurConfig()
                 .setBlurRadius(blurRadius)
                 .setOverlayColor(overlayColor)
                 .setOverlayAlpha(overlayAlpha);
         
-        // Listen for layout changes to recapture background
         getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
@@ -87,31 +84,23 @@ public class GlassView extends View {
         });
     }
 
-    /**
-     * Captures whatever is BEHIND this view - no hierarchy dependency
-     */
     private void captureBackground() {
         try {
-            // Get the root view (top-most parent)
             View rootView = getRootView();
             if (rootView == null) return;
             
-            // Get location of this view on screen
             int[] location = new int[2];
             getLocationOnScreen(location);
             
-            // Enable drawing cache
             rootView.setDrawingCacheEnabled(true);
             rootView.buildDrawingCache();
             
-            // Get the root view bitmap
             Bitmap rootBitmap = rootView.getDrawingCache();
             if (rootBitmap == null) {
                 rootView.setDrawingCacheEnabled(false);
                 return;
             }
             
-            // Calculate the area BEHIND this view
             int x = Math.max(0, location[0]);
             int y = Math.max(0, location[1]);
             int width = Math.min(getWidth(), rootBitmap.getWidth() - x);
@@ -122,28 +111,22 @@ public class GlassView extends View {
                 return;
             }
             
-            // Capture ONLY the area behind this view
             Bitmap behindBitmap = Bitmap.createBitmap(rootBitmap, x, y, width, height);
             
-            // Scale down for performance
             float scale = 0.5f;
             Bitmap scaledBitmap = Bitmap.createScaledBitmap(behindBitmap, 
                 (int)(width * scale), (int)(height * scale), true);
             
-            // Apply blur using BlurUtils
             blurredBackground = BlurUtils.getInstance().fastBlur(scaledBitmap, (int) blurRadius);
             
-            // Scale back up to original size
             if (blurredBackground != null) {
                 blurredBackground = Bitmap.createScaledBitmap(blurredBackground, width, height, true);
             }
             
-            // Clean up
             scaledBitmap.recycle();
             behindBitmap.recycle();
             rootView.setDrawingCacheEnabled(false);
             
-            // Redraw with new blurred background
             invalidate();
             
         } catch (Exception e) {
@@ -153,24 +136,54 @@ public class GlassView extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        // Respect XML measurements - NO stretching!
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
+        int count = getChildCount();
+        int maxWidth = 0;
+        int totalHeight = 0;
+        
+        for (int i = 0; i < count; i++) {
+            View child = getChildAt(i);
+            if (child.getVisibility() != GONE) {
+                measureChild(child, widthMeasureSpec, heightMeasureSpec);
+                maxWidth = Math.max(maxWidth, child.getMeasuredWidth());
+                totalHeight += child.getMeasuredHeight();
+            }
+        }
+        
+        maxWidth += getPaddingLeft() + getPaddingRight();
+        totalHeight += getPaddingTop() + getPaddingBottom();
+        
+        int width = resolveSize(Math.max(maxWidth, getSuggestedMinimumWidth()), widthMeasureSpec);
+        int height = resolveSize(Math.max(totalHeight, getSuggestedMinimumHeight()), heightMeasureSpec);
+        
         setMeasuredDimension(width, height);
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        int top = getPaddingTop();
+        int left = getPaddingLeft();
+        
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child.getVisibility() != GONE) {
+                int childWidth = child.getMeasuredWidth();
+                int childHeight = child.getMeasuredHeight();
+                
+                child.layout(left, top, left + childWidth, top + childHeight);
+                top += childHeight;
+            }
+        }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         
-        // Draw the blurred background (what's behind this view)
         if (blurredBackground != null && !blurredBackground.isRecycled()) {
             canvas.drawBitmap(blurredBackground, 0, 0, null);
         }
         
-        // ===== 3D GLASS EFFECTS =====
-        
-        // 1. Inner glow
+        // Inner glow
         if (innerGlowIntensity > 0) {
             innerGlowPaint.setColor(Color.argb((int)(30 * innerGlowIntensity), 255, 255, 255));
             innerGlowPaint.setStrokeWidth(cornerRadius / 3);
@@ -182,7 +195,7 @@ public class GlassView extends View {
             canvas.drawRoundRect(innerRect, cornerRadius/2, cornerRadius/2, innerGlowPaint);
         }
         
-        // 2. Edge highlights (top & left)
+        // Edge highlights
         if (edgeHighlightIntensity > 0) {
             edgeHighlightPaint.setColor(Color.argb((int)(80 * edgeHighlightIntensity), 255, 255, 255));
             edgeHighlightPaint.setStrokeWidth(borderWidth * 2);
@@ -198,7 +211,7 @@ public class GlassView extends View {
             canvas.drawPath(leftPath, edgeHighlightPaint);
         }
         
-        // 3. Edge shadows (bottom & right)
+        // Edge shadows
         if (edgeShadowIntensity > 0) {
             edgeShadowPaint.setColor(Color.argb((int)(60 * edgeShadowIntensity), 0, 0, 0));
             edgeShadowPaint.setStrokeWidth(borderWidth * 1.5f);
@@ -214,14 +227,13 @@ public class GlassView extends View {
             canvas.drawPath(rightPath, edgeShadowPaint);
         }
         
-        // 4. Main glass overlay
+        // Glass overlay
         int alpha = (int) (overlayAlpha * 255);
         glassPaint.setColor(Color.argb(alpha,
                 Color.red(overlayColor),
                 Color.green(overlayColor),
                 Color.blue(overlayColor)));
         
-        // Draw with rounded corners
         if (cornerRadius > 0) {
             RectF rect = new RectF(0, 0, getWidth(), getHeight());
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, glassPaint);
@@ -229,7 +241,7 @@ public class GlassView extends View {
             canvas.drawRect(0, 0, getWidth(), getHeight(), glassPaint);
         }
         
-        // 5. Gradient border
+        // Border
         if (borderWidth > 0) {
             LinearGradient gradient = new LinearGradient(
                 0, 0, getWidth(), getHeight(),
@@ -263,13 +275,11 @@ public class GlassView extends View {
             borderPaint.setShader(null);
         }
         
-        // 6. Corner highlights
+        // Corner highlights
         if (cornerRadius > 0) {
-            // Top-left highlight
             cornerHighlightPaint.setColor(Color.argb(80, 255, 255, 255));
             canvas.drawCircle(cornerRadius/2, cornerRadius/2, cornerRadius/5, cornerHighlightPaint);
             
-            // Bottom-right shadow
             cornerHighlightPaint.setColor(Color.argb(40, 0, 0, 0));
             canvas.drawCircle(
                 getWidth() - cornerRadius/2,
@@ -282,7 +292,6 @@ public class GlassView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        // Recapture background when size changes
         if (w > 0 && h > 0) {
             postDelayed(new Runnable() {
                 @Override
@@ -292,8 +301,6 @@ public class GlassView extends View {
             }, 100);
         }
     }
-
-    // ========== PUBLIC METHODS ==========
 
     public void setBlurConfig(BlurConfig config) {
         this.config = config;
@@ -348,7 +355,6 @@ public class GlassView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        // Clean up bitmap
         if (blurredBackground != null && !blurredBackground.isRecycled()) {
             blurredBackground.recycle();
             blurredBackground = null;
