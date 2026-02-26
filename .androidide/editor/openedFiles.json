@@ -1,35 +1,20 @@
 {
   "allFiles": [
     {
-      "file": "/storage/emulated/0/AndroidIDEProjects/Shadowblur/settings.gradle",
-      "selection": {
-        "end": {
-          "column": 21,
-          "index": 393,
-          "line": 19
-        },
-        "start": {
-          "column": 21,
-          "index": 393,
-          "line": 19
-        }
-      }
-    },
-    {
-      "file": "/storage/emulated/0/AndroidIDEProjects/Shadowblur/app/build.gradle",
+      "file": "/storage/emulated/0/AndroidIDEProjects/Shadowblur/app/src/main/java/com/effects/shadowblur/GlassView.java",
       "selection": {
         "end": {
           "column": 1,
-          "index": 1237,
-          "line": 54
+          "index": 12303,
+          "line": 356
         },
         "start": {
           "column": 1,
-          "index": 1237,
-          "line": 54
+          "index": 12303,
+          "line": 356
         }
       }
     }
   ],
-  "selectedFile": "/storage/emulated/0/AndroidIDEProjects/Shadowblur/app/build.gradle"
+  "selectedFile": "/storage/emulated/0/AndroidIDEProjects/Shadowblur/app/src/main/java/com/effects/shadowblur/GlassView.java"
 }
