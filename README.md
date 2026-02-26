@@ -42,7 +42,7 @@ Add this to your app build.gradle:
 
 ```gradle
 dependencies {
-    implementation 'com.github.AdamNub:ShadowBlur_Android:1.0.2'
+    implementation 'com.github.AdamNub:ShadowBlur_Android:1.0.3'
 }
 ```
 
